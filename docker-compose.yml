@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  backend-api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: ainoise-cloud-api
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://ainoise_user:secure_pass_2026@timescaledb:5432/ainoise_events
+      - JWT_SECRET=AINOISE_PRODUCTION_JWT_SECRET_KEY_CHANGE_IN_ENV
+    depends_on:
+      - timescaledb
+    restart: unless-stopped
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg15
+    container_name: ainoise-timescaledb
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=ainoise_user
+      - POSTGRES_PASSWORD=secure_pass_2026
+      - POSTGRES_DB=ainoise_events
+    volumes:
+      - timescale_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  facility-dashboard:
+    image: nginx:alpine
+    container_name: ainoise-facility-dashboard
+    ports:
+      - "8080:80"
+    volumes:
+      - ./backend/dashboard:/usr/share/nginx/html:ro
+    depends_on:
+      - backend-api
+    restart: unless-stopped
+
+volumes:
+  timescale_data:
+
